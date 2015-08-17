@@ -1,0 +1,62 @@
+#compdef jupyter
+# ------------------------------------------------------------------------------
+# Description
+# -----------
+#
+#  Completion script for Jupyter (http://jupyter.org/).
+#
+# ------------------------------------------------------------------------------
+# Authors
+# -------
+#
+#  * Philipp A. (https://github.com/flying-sheep)
+#
+# ------------------------------------------------------------------------------
+
+
+#crazy zsh syntax “Parameter Expansion Flags”
+#http://zsh.sourceforge.net/Doc/Release/Expansion.html#Parameter-Expansion-Flags
+#
+#local -a some_array
+#some_array=(${(@f)"..."})
+#
+#basically means:
+# 1.  ${(f)"..."}: “split the string "..." into an array by newlines”
+# 3. some_array=(...): “assign the words ... to array ‘some_array’”
+
+
+_jupyter() {
+	local state
+	
+	_arguments \
+		':subcommand:->subcommand' \
+		'*::options:->options' && ret=0
+	
+	case $state in
+		subcommand)
+			local -a cmds subcommands
+			cmds=($(whence -pm 'jupyter-*' | cut -d - -f 2))
+			
+			subcommands=()
+			for cmd in $cmds; do
+				subcommands+=("$cmd:$(jupyter-$cmd --help | head -n 1)")
+			done
+			
+			# -t subcommands
+			_describe 'jupyter subcommand' subcommands
+			;;
+		options)
+			opts=(${(@f)"$(
+python3 <<EOF
+from jupyter_core.command import jupyter_parser
+for a in jupyter_parser()._actions:
+	for os in a.option_strings:
+		print('({}){}[{}]'.format(' '.join(a.option_strings), os, a.help))
+EOF
+			)"})
+			_arguments -w -C -S -s "${opts[@]}" && ret=0
+			;;
+	esac
+}
+
+_jupyter "$@"
